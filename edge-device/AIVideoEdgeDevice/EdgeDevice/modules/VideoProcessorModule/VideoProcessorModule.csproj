@@ -43,6 +43,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\..\..\..\NumSharp\NumSharp\src\NumSharp.Core\NumSharp.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Protobuf Include="fpga.proto" GrpcServices="Client" />
     <Protobuf Include="VideoProcessorGrpc.proto" GrpcServices="Server" />
   </ItemGroup>
