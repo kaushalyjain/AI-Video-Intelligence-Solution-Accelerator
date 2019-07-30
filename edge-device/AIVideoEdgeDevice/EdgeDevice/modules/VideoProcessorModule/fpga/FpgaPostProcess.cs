@@ -51,70 +51,59 @@ namespace FpgaClient
 
             List<ImageFeature> result = new List<ImageFeature>();
 
-            ExtractDetections(networkOutput.GetRange(0, 6), networkOutput.GetRange(6, 6), g_ssdAnchors, selectThreshold, nmsThreshold);
+            ExtractDetections(networkOutput.GetRange(0, 6), networkOutput.GetRange(6, 6), g_ssdAnchors, 
+                selectThreshold, nmsThreshold, imageShape: (300, 300), numClasses: 21);
 
 
 
             return result;
         }
 
-        /// <summary>
-        /// Perform an element-wise operation on source and store the result in dest. 
-        /// The source and operand shapes must match except for the last dimension;
-        /// this gives a "scalar-ish" o
-        /// </summary>
-        /// <typeparam name="TD">The Storage array type for the destination</typeparam>
-        /// <typeparam name="TS">The Storage array type for the source</typeparam>
-        /// <typeparam name="TO">The Storage array type for the operand</typeparam>
-        /// <param name="dest">The Storage array for the destination</param>
-        /// <param name="source">The Storage array for the source</param>
-        /// <param name="operand">The Storage array for the operand</param>
-        /// <param name="destShape"></param>
-        /// <param name="sourceShape"></param>
-        /// <param name="operandShape"></param>
-        /// <param name="op">The operation to perform</param>
-        /// <remarks>This implementation</remarks>
-        static void SingleProjectionOperation<TD, TS, TO>(TD[] dest, TS[] source, TO[] operand, 
-            Shape destShape, Shape sourceShape, Shape operandShape, Func<TS, TO, TD> op)
-        {
-            if (destShape != sourceShape)
-            {
-                throw new Exception("Source and destination shapes are not equal");
-            }
-            if (destShape.Dimensions.Length != operandShape.Dimensions.Length)
-            {
-                throw new Exception("Source and operand shape lengths are not equal");
-            }
-            for (int i = 0; i < destShape.Dimensions.Length; i++)
-            {
-
-            }
-        }
-
         static void ExtractDetections(List<NDArray> predictions, List<NDArray> localizations,
-            List<(NDArray, NDArray, NDArray, NDArray)> ssdAnchors, float selectThreshold, float nmsThreshold)
+            List<(NDArray, NDArray, NDArray, NDArray)> ssdAnchors, 
+            float selectThreshold, float nmsThreshold, (int, int) imageShape, int numClasses)
         {
 
             for (int i = 0; i < predictions.Count; i++)
             {
-                SoftMax(predictions[i], axis: 4);
+                NDArray preds = SoftMax(predictions[i], axis: 4);
+                SelectLayerBoxes(preds, localizations[i], ssdAnchors[i], 
+                    selectThreshold, nmsThreshold, imageShape, numClasses);
             }
         }
 
-        // This version of SoftMax operates on the source
-        static void SoftMax(NDArray x, int axis)
+        static void SelectLayerBoxes(
+            NDArray predictions, 
+            NDArray localizations,
+            (NDArray, NDArray, NDArray, NDArray) anchors,
+            float selectThreshold,
+            float nmsThreshold,
+            (int, int) imageShape,
+            int numClasses
+            )
         {
+
+        }
+
+        static NDArray SoftMax(NDArray x, int axis)
+        {
+            // Original Python
+            //e_x = np.exp(x - np.expand_dims(np.max(x, axis = axis), axis))
+            //result = e_x / np.expand_dims(np.sum(e_x, axis = axis), axis)
+            //return result
+
             var max = np.max(x, axis: axis);
             // This gratuitous reshape works around a bug in NumSharp 0.10.4 Shape that produces incorrect size.
             max = np.reshape(max, max.shape);
-            var zzzz = max[0][0];
-            //max.size
-            var maxX = np.expand_dims(max, axis);
-            //var delta = x - maxX;
-            //NDArray e_x = np.power((x - np.expand_dims(np.max(x, axis: axis), axis)), (float)Math.E);
-            //e_x = np.exp(x - np.expand_dims(np.max(x, axis = axis), axis))
-            //result = e_x / np.expand_dims(np.sum(e_x, axis = axis), axis)
-            //return null;
+            var maxExpanded = np.expand_dims(max, axis);
+            var e_xMinusMaxExpanded = BroadcastOp.SubtractFloat(x, maxExpanded);
+            BroadcastOp.SelfPowerFloat(e_xMinusMaxExpanded);
+
+            var sum = BroadcastOp.SumFloat(e_xMinusMaxExpanded, axis: axis);
+            var sumExpanded = np.expand_dims(sum, axis);
+            BroadcastOp.SelfDivideFloat(e_xMinusMaxExpanded, sumExpanded);
+
+            return e_xMinusMaxExpanded;
         }
     }
 }

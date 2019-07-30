@@ -1,4 +1,5 @@
 ﻿using FpgaClient;
+using NumSharp;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -17,6 +18,7 @@ namespace FpgaTest
             var client = new FpgaClient.FpgaClient("192.168.1.192", 50051);
 
             float[] offsets = new float[] { 123, 117, 104 };
+            NDArray rrr = new NDArray(offsets);
 
             using (Bitmap bitmap = new Bitmap(imageFile))
             {
