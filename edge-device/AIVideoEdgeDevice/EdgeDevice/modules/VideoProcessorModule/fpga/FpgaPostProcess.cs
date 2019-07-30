@@ -74,7 +74,7 @@ namespace FpgaClient
 
         static void SelectLayerBoxes(
             NDArray predictions, 
-            NDArray localizations,
+            NDArray localizationsIn,
             (NDArray, NDArray, NDArray, NDArray) anchors,
             float selectThreshold,
             float nmsThreshold,
@@ -82,7 +82,15 @@ namespace FpgaClient
             int numClasses
             )
         {
+            NDArray localizations = DecodeLayerBoxes(localizationsIn, anchors);
+        }
 
+        static NDArray DecodeLayerBoxes(NDArray localizations, (NDArray, NDArray, NDArray, NDArray) anchors)
+        {
+            float[] priorScaling = new float[] { 0.1F, 0.1F, 0.2F, 0.2F };
+
+
+            return null;
         }
 
         static NDArray SoftMax(NDArray x, int axis)
